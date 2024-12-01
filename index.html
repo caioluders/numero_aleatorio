@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Escolha um Número</title>
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    <style>
+        .chart-bar {
+            background-color: #4CAF50;
+            margin: 2px;
+            padding: 5px;
+            color: white;
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+    <h1>Jogo de Escolher Números</h1>
+    <div id="gameArea">
+        <p>Escolha um número entre 1 e 10:</p>
+        <input type="number" id="numberInput" min="1" max="10">
+        <div class="g-recaptcha" data-sitekey="SEU_SITE_KEY_AQUI"></div>
+        <button onclick="submitNumber()">Enviar</button>
+    </div>
+    <div id="results" style="display: none;">
+        <h2>Resultados</h2>
+        <div id="chart"></div>
+    </div>
+
+    <script>
+        async function submitNumber() {
+            const number = document.getElementById('numberInput').value;
+            const recaptchaResponse = grecaptcha.getResponse();
+
+            if (number < 1 || number > 10) {
+                alert('Por favor, digite um número entre 1 e 10');
+                return;
+            }
+
+            if (!recaptchaResponse) {
+                alert('Por favor, complete o reCAPTCHA');
+                return;
+            }
+
+            // Send the number to the backend
+            const response = await fetch('/submit', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    number: parseInt(number),
+                    recaptcha: recaptchaResponse
+                })
+            });
+
+            if (response.ok) {
+                showResults();
+                grecaptcha.reset();
+            } else {
+                alert('Erro ao enviar o número. Por favor, tente novamente.');
+            }
+        }
+
+        async function showResults() {
+            const response = await fetch('/results');
+            const data = await response.json();
+            
+            document.getElementById('results').style.display = 'block';
+            const chartDiv = document.getElementById('chart');
+            chartDiv.innerHTML = '';
+
+            // Create bar chart
+            for (let i = 1; i <= 10; i++) {
+                const count = data[i] || 0;
+                const bar = document.createElement('div');
+                bar.className = 'chart-bar';
+                bar.style.width = `${count * 30}px`;
+                bar.textContent = `${i}: ${count} voto(s)`;
+                chartDiv.appendChild(bar);
+            }
+        }
+    </script>
+</body>
+</html>
